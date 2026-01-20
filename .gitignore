@@ -1,1 +1,3 @@
-config/general.ini
+config/*
+logs/*
+*.pyc
