@@ -25,6 +25,39 @@ class ConfigManager:
                 },
             )
         )
+        self.readConfig(
+            ConfigStructure(
+                "./config/verification.ini",
+                {
+                    "Verification": [
+                        "VerificationCategoryId",
+                        "RecruitRoleId",
+                        "GFARoleId",
+                        "PublicRoleId",
+                        "AllyRoleId",
+                        "FriendRoleId",
+                        "MainChannelId",
+                        "LogChannelId",
+                        "WelcomeChannelId",
+                        "VerificationChannelId",
+                    ]
+                },
+                {
+                    "Verification": {
+                        "VerificationCategoryId": [self._validator.checkNotEmpty],
+                        "RecruitRoleId": [self._validator.checkNotEmpty],
+                        "GFARoleId": [self._validator.checkNotEmpty],
+                        "PublicRoleId": [self._validator.checkNotEmpty],
+                        "AllyRoleId": [self._validator.checkNotEmpty],
+                        "FriendRoleId": [self._validator.checkNotEmpty],
+                        "MainChannelId": [self._validator.checkNotEmpty],
+                        "LogChannelId": [self._validator.checkNotEmpty],
+                        "WelcomeChannelId": [self._validator.checkNotEmpty],
+                        "VerificationChannelId": [self._validator.checkNotEmpty],
+                    }
+                },
+            )
+        )
 
     def createConfig(self, path, format):
         configFile = open(path, "w")

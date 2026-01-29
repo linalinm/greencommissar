@@ -1,3 +1,5 @@
 config/*
 logs/*
 *.pyc
+*.old
+verification.json

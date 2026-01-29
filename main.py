@@ -14,7 +14,7 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.presences = True
 intents.members = True
-intents.reactions = True
+intents.guild_reactions = True
 
 
 class GreenCommissar(commands.Bot):

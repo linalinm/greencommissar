@@ -1,5 +1,5 @@
 from discord.ext import commands
-import discord
+from discord import app_commands
 from util.BotLogger import BotLogger
 
 
@@ -14,5 +14,10 @@ class CoreCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        await self.bot.tree.sync(guild=discord.Object(id=self._config["Bot"]["server"]))
+        guild = self.bot.get_guild(int(self._config["Bot"]["server"]))
+        self.bot.tree.clear_commands(guild=guild)
+        for command in self.bot.tree.get_commands():
+            if isinstance(command, app_commands.Group):
+                self.bot.tree.add_command(command, guild=guild)
+        await self.bot.tree.sync(guild=guild)
         self._logger.log(f"{self.bot.user.name} is now online.")
