@@ -40,6 +40,9 @@ class ConfigManager:
                         "LogChannelId",
                         "WelcomeChannelId",
                         "VerificationChannelId",
+                        "WarRoomId",
+                        "AllyRoomId",
+                        "PublicRoomId",
                     ]
                 },
                 {
@@ -54,6 +57,9 @@ class ConfigManager:
                         "LogChannelId": [self._validator.checkNotEmpty],
                         "WelcomeChannelId": [self._validator.checkNotEmpty],
                         "VerificationChannelId": [self._validator.checkNotEmpty],
+                        "WarRoomId": [self._validator.checkNotEmpty],
+                        "AllyRoomId": [self._validator.checkNotEmpty],
+                        "PublicRoomId": [self._validator.checkNotEmpty],
                     }
                 },
             )

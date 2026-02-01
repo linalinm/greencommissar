@@ -20,9 +20,18 @@ class VerificationView(discord.ui.view.View):
         self._categoryId = categoryId
         super().__init__(timeout=timeout)
         self._texts = {
-            "join": ("jointitle", "jointext"),
-            "ally": ("allytitle", "allytext"),
-            "public": ("publictitle", "publictext"),
+            "join": (
+                "Welcome to GFA!",
+                "Be sure to check <#1403809815280484383> and <#1466233095609913364>. By verifying to join you confirm that you will follow the rules and are aware this is a queer dominated space. Keeping the space safe and progressive is the #1 priority, so respect everyone's pronouns!\nTo prove you are Colonial:\n Go to home region\nPress f1, take a screenshot, make sure you are colonial and faction locked\nPress N (secure map), take a screenshot\nMake sure you are faction locked and on ABLE!",
+            ),
+            "ally": (
+                "Welcome to GFA!",
+                "Be sure to check <#1403809815280484383> and <#1466233095609913364>. By verifying for ally you confirm that you will respect the rules and everyone here, and you are aware this is a queer dominated space.\nTo prove you are Colonial:\n Go to home region\nPress f1, take a screenshot, make sure you are colonial and faction locked\nPress N (secure map), take a screenshot\nMake sure you are faction locked and on ABLE!",
+            ),
+            "public": (
+                "Welcome to GFA!",
+                "Be sure to check <#1403809815280484383> and <#1466233095609913364>. By asking for public access you confirm that you will respect the rules and everyone here, and you are aware this is a queer dominated space.",
+            ),
         }
 
     def build_ticket_embed(self, type: str):

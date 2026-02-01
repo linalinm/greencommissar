@@ -11,17 +11,7 @@ class VerificationCog(commands.Cog):
     def __init__(self, bot: commands.Bot, config: dict, logger: BotLogger):
         self.bot = bot
         self._config = config
-        self._recruitId = config["Verification"]["RecruitRoleId"]
-        self._gfaId = config["Verification"]["GFARoleId"]
-        self._publicId = config["Verification"]["PublicRoleId"]
-        self._allyId = config["Verification"]["AllyRoleId"]
-        self._friendId = config["Verification"]["FriendRoleId"]
-        self._categoryId = config["Verification"]["VerificationCategoryId"]
-        self._mainId = config["Verification"]["MainChannelId"]
-        self._logChannelId = config["Verification"]["LogChannelId"]
-        self._welcomeChannelId = config["Verification"]["WelcomeChannelId"]
-        self._verificationChannelId = config["Verification"]["VerificationChannelId"]
-        self._last_member = None
+        self._verificationConfig = config["Verification"]
         self._logger = logger.createSectionLogger("Verification")
         self._repository = VerificationRepository("verification.json", self._logger)
         self._logger.log("Cog loaded")
@@ -29,9 +19,13 @@ class VerificationCog(commands.Cog):
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
         guild = await self.bot.fetch_guild(self._config["Bot"]["server"])
-        channel = guild.get_channel(self._welcomeChannelId)
-        verificationChannel = guild.get_channel(self._verificationChannelId)
-        channel.send(
+        channel = await guild.fetch_channel(
+            self._verificationConfig["WelcomeChannelId"]
+        )
+        verificationChannel = await guild.fetch_channel(
+            self._verificationConfig["VerificationChannelId"]
+        )
+        await channel.send(
             f"Welcome, {member.mention}, head over to {verificationChannel.mention} to begin your verification process!"
         )
 
@@ -43,7 +37,7 @@ class VerificationCog(commands.Cog):
                 bot=self.bot,
                 logger=self._logger,
                 repository=self._repository,
-                categoryId=self._categoryId,
+                categoryId=self._verificationConfig["VerificationCategoryId"],
             )
         )
 
@@ -65,7 +59,7 @@ class VerificationCog(commands.Cog):
             bot=self.bot,
             logger=self._logger,
             repository=self._repository,
-            categoryId=self._categoryId,
+            categoryId=self._verificationConfig["VerificationCategoryId"],
         )
         embed = view.build_embed()
         message = await interaction.channel.send(embed=embed, view=view)
@@ -85,12 +79,6 @@ class VerificationCog(commands.Cog):
                 "You do not have the required permissions for this.", ephemeral=True
             )
 
-    @app_commands.command(
-        description="Just a testing command",
-    )
-    async def testing(self, interaction: discord.Interaction) -> None:
-        await interaction.response.send_message("Hurrah")
-
     verify = app_commands.Group(
         name="verify",
         description="Verify someone.",
@@ -106,9 +94,11 @@ class VerificationCog(commands.Cog):
         embed.add_field(name="Vetter", value=interaction.user.mention)
         embed.add_field(name="User", value=user.mention)
         embed.add_field(name="Reason", value=reason)
-        await (await interaction.guild.fetch_channel(self._logChannelId)).send(
-            embed=embed
-        )
+        await (
+            await interaction.guild.fetch_channel(
+                self._verificationConfig["LogChannelId"]
+            )
+        ).send(embed=embed)
 
     async def log_verification(
         self, interaction: discord.Interaction, roles_to_add: list, userId: int
@@ -124,9 +114,36 @@ class VerificationCog(commands.Cog):
                 rolesAddedMentions + f"{interaction.guild.get_role(int(id)).mention}\n"
             )
         embed.add_field(name="Roles", value=rolesAddedMentions)
-        await (await interaction.guild.fetch_channel(self._logChannelId)).send(
-            embed=embed
-        )
+        await (
+            await interaction.guild.fetch_channel(
+                self._verificationConfig["LogChannelId"]
+            )
+        ).send(embed=embed)
+
+    async def welcome_user(self, user: discord.User, type: str):
+        types = {
+            "recruit": (
+                self._verificationConfig["WarRoomId"],
+                f"Welcome {user.mention}! Be sure to check <#1403862452692586647> to familiarise yourself with the rank structure. If any issues come up feel free to DM your local friendly officer. Hope you enjoy your time in GFA!",
+            ),
+            "ally": (
+                self._verificationConfig["AllyRoomId"],
+                f"Welcome {user.mention}! Make sure to tell us if you swap faction.",
+            ),
+            "public": (
+                self._verificationConfig["PublicRoomId"],
+                f"Welcome {user.mention}!",
+            ),
+        }
+        channel = await self.bot.fetch_channel(types[type][0])
+        await channel.send(types[type][1])
+
+    async def prepare_nickname(self, user: discord.Member):
+        nickname = f"[GFA] {user.display_name} ()"
+        try:
+            await user.edit(nick=nickname)
+        except app_commands.errors.CommandInvokeError:
+            self._logger.warn(f"Could not change nickname of user {user.display_name}")
 
     async def verify_and_add_roles(
         self, interaction: discord.Interaction, roles_to_add: list
@@ -150,26 +167,42 @@ class VerificationCog(commands.Cog):
         self._repository.removeChannel(channelId)
         await self.log_verification(interaction, roles_to_add, userId)
         await interaction.channel.delete(reason="Ticket closed.")
+        return member
 
     @verify.command(description="Verify someone as a new GFA recruit.")
     @app_commands.checks.has_permissions(manage_roles=True)
     async def recruit(self, interaction: discord.Interaction) -> None:
         await interaction.response.defer()
-        await self.verify_and_add_roles(
-            interaction, roles_to_add=[self._gfaId, self._recruitId]
+        member = await self.verify_and_add_roles(
+            interaction,
+            roles_to_add=[
+                self._verificationConfig["GFARoleId"],
+                self._verificationConfig["RecruitRoleId"],
+            ],
         )
+        if member is not None:
+            await self.welcome_user(member, "recruit")
+            await self.prepare_nickname(member)
 
     @verify.command(description="Verify someone as an ally.")
     @app_commands.checks.has_permissions(manage_roles=True)
     async def ally(self, interaction: discord.Interaction) -> None:
         await interaction.response.defer()
-        await self.verify_and_add_roles(interaction, roles_to_add=[self._allyId])
+        member = await self.verify_and_add_roles(
+            interaction, roles_to_add=[self._verificationConfig["AllyRoleId"]]
+        )
+        if member is not None:
+            await self.welcome_user(member, "ally")
 
     @verify.command(description="Verify someone as public.")
     @app_commands.checks.has_permissions(manage_roles=True)
     async def public(self, interaction: discord.Interaction) -> None:
         await interaction.response.defer()
-        await self.verify_and_add_roles(interaction, roles_to_add=[self._publicId])
+        member = await self.verify_and_add_roles(
+            interaction, roles_to_add=[self._verificationConfig["PublicRoleId"]]
+        )
+        if member is not None:
+            await self.welcome_user(member, "public")
 
     @verify.command(description="Reject a verification ticket.")
     @app_commands.checks.has_permissions(manage_roles=True)
